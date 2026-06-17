@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "CandidateIQ"
+version = "1.0.0"
+id = "artifacts/candidate-iq"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25401
+
+[services.development]
+run = "pnpm --filter @workspace/candidate-iq run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/candidate-iq", "run", "build" ]
+publicDir = "artifacts/candidate-iq/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25401"
+BASE_PATH = "/"

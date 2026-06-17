@@ -3,13 +3,19 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: CandidateIQ API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: jobs
+    description: Job description management
+  - name: candidates
+    description: Candidate profile management
+  - name: rankings
+    description: Ranking runs and results
 paths:
   /healthz:
     get:
@@ -24,6 +30,280 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /jobs:
+    get:
+      operationId: listJobs
+      tags: [jobs]
+      summary: List all saved job descriptions
+      responses:
+        "200":
+          description: List of jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Job"
+    post:
+      operationId: createJob
+      tags: [jobs]
+      summary: Create a new job description (with LLM parsing)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobInput"
+      responses:
+        "201":
+          description: Created job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+
+  /jobs/{id}:
+    get:
+      operationId: getJob
+      tags: [jobs]
+      summary: Get a single job description
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateJob
+      tags: [jobs]
+      summary: Update parsed job fields
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobUpdate"
+      responses:
+        "200":
+          description: Updated job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+    delete:
+      operationId: deleteJob
+      tags: [jobs]
+      summary: Delete a job description
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /candidates:
+    get:
+      operationId: listCandidates
+      tags: [candidates]
+      summary: List all candidates
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of candidates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Candidate"
+    post:
+      operationId: createCandidate
+      tags: [candidates]
+      summary: Add a candidate to the pool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CandidateInput"
+      responses:
+        "201":
+          description: Created candidate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Candidate"
+
+  /candidates/{id}:
+    get:
+      operationId: getCandidate
+      tags: [candidates]
+      summary: Get a single candidate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Candidate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Candidate"
+        "404":
+          description: Not found
+
+  /candidates/stats:
+    get:
+      operationId: getCandidateStats
+      tags: [candidates]
+      summary: Aggregate stats about the candidate pool
+      responses:
+        "200":
+          description: Pool stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CandidateStats"
+
+  /rankings:
+    get:
+      operationId: listRankings
+      tags: [rankings]
+      summary: List all ranking runs
+      responses:
+        "200":
+          description: List of ranking runs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RankingRun"
+    post:
+      operationId: createRanking
+      tags: [rankings]
+      summary: Trigger a new ranking run for a job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RankingInput"
+      responses:
+        "201":
+          description: Ranking run started/completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RankingRun"
+
+  /rankings/{id}:
+    get:
+      operationId: getRanking
+      tags: [rankings]
+      summary: Get a ranking run with all results
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ranking run with results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RankingRunDetail"
+        "404":
+          description: Not found
+
+  /rankings/{id}/results:
+    get:
+      operationId: listRankedCandidates
+      tags: [rankings]
+      summary: Get all ranked candidate results for a ranking run
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ranked results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RankedCandidate"
+
+  /rankings/{id}/export:
+    get:
+      operationId: exportRanking
+      tags: [rankings]
+      summary: Export ranking results as CSV
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  /rankings/{id}/stats:
+    get:
+      operationId: getRankingStats
+      tags: [rankings]
+      summary: Aggregated stats for a ranking run (score distribution, top skills, etc.)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ranking stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RankingStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +314,288 @@ components:
       required:
         - status
 
+    Job:
+      type: object
+      required: [id, title, rawText, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        rawText:
+          type: string
+        requiredSkills:
+          type: array
+          items:
+            type: string
+        preferredSkills:
+          type: array
+          items:
+            type: string
+        minExperience:
+          type: ["integer", "null"]
+        educationRequirement:
+          type: ["string", "null"]
+        domain:
+          type: ["string", "null"]
+        seniorityLevel:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    JobInput:
+      type: object
+      required: [title, rawText]
+      properties:
+        title:
+          type: string
+        rawText:
+          type: string
+
+    JobUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        requiredSkills:
+          type: array
+          items:
+            type: string
+        preferredSkills:
+          type: array
+          items:
+            type: string
+        minExperience:
+          type: integer
+        educationRequirement:
+          type: string
+        domain:
+          type: string
+        seniorityLevel:
+          type: string
+
+    Candidate:
+      type: object
+      required: [id, name, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: ["string", "null"]
+        currentTitle:
+          type: ["string", "null"]
+        currentCompany:
+          type: ["string", "null"]
+        yearsExperience:
+          type: ["integer", "null"]
+        educationLevel:
+          type: ["string", "null"]
+        skills:
+          type: array
+          items:
+            type: string
+        resumeText:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        linkedinUrl:
+          type: ["string", "null"]
+        activityScore:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    CandidateInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        currentTitle:
+          type: string
+        currentCompany:
+          type: string
+        yearsExperience:
+          type: integer
+        educationLevel:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        resumeText:
+          type: string
+        location:
+          type: string
+        linkedinUrl:
+          type: string
+        activityScore:
+          type: number
+
+    CandidateStats:
+      type: object
+      required: [total, avgExperience, educationBreakdown, topSkills]
+      properties:
+        total:
+          type: integer
+        avgExperience:
+          type: number
+        educationBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/LabelCount"
+        topSkills:
+          type: array
+          items:
+            $ref: "#/components/schemas/LabelCount"
+
+    LabelCount:
+      type: object
+      required: [label, count]
+      properties:
+        label:
+          type: string
+        count:
+          type: integer
+
+    RankingInput:
+      type: object
+      required: [jobId]
+      properties:
+        jobId:
+          type: integer
+        topN:
+          type: integer
+        minScore:
+          type: number
+
+    RankingRun:
+      type: object
+      required: [id, jobId, status, createdAt]
+      properties:
+        id:
+          type: integer
+        jobId:
+          type: integer
+        jobTitle:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        topN:
+          type: ["integer", "null"]
+        minScore:
+          type: ["number", "null"]
+        totalCandidates:
+          type: ["integer", "null"]
+        shortlistedCount:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+
+    RankingRunDetail:
+      type: object
+      required: [id, jobId, status, createdAt, results]
+      properties:
+        id:
+          type: integer
+        jobId:
+          type: integer
+        jobTitle:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        topN:
+          type: ["integer", "null"]
+        minScore:
+          type: ["number", "null"]
+        totalCandidates:
+          type: ["integer", "null"]
+        shortlistedCount:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/RankedCandidate"
+
+    RankedCandidate:
+      type: object
+      required: [id, rankingId, candidateId, rank, compositeScore]
+      properties:
+        id:
+          type: integer
+        rankingId:
+          type: integer
+        candidateId:
+          type: integer
+        rank:
+          type: integer
+        compositeScore:
+          type: number
+        semanticScore:
+          type: ["number", "null"]
+        experienceScore:
+          type: ["number", "null"]
+        educationScore:
+          type: ["number", "null"]
+        activityScore:
+          type: ["number", "null"]
+        trajectoryScore:
+          type: ["number", "null"]
+        rationale:
+          type: ["string", "null"]
+        matchedSkills:
+          type: array
+          items:
+            type: string
+        missingSkills:
+          type: array
+          items:
+            type: string
+        candidate:
+          $ref: "#/components/schemas/Candidate"
+
+    ScoreBucket:
+      type: object
+      required: [range, count]
+      properties:
+        range:
+          type: string
+        count:
+          type: integer
+
+    RankingStats:
+      type: object
+      required: [scoreDistribution, avgCompositeScore, topMatchedSkills, topMissingSkills]
+      properties:
+        scoreDistribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScoreBucket"
+        avgCompositeScore:
+          type: number
+        topMatchedSkills:
+          type: array
+          items:
+            $ref: "#/components/schemas/LabelCount"
+        topMissingSkills:
+          type: array
+          items:
+            $ref: "#/components/schemas/LabelCount"
