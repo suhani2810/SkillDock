@@ -25,7 +25,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const parsed = CreateJobBody.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const { title, rawText } = parsed.data;
   try {
@@ -53,11 +53,11 @@ router.post("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   const params = GetJobParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) return res.status(400).json({ error: "Invalid id" });
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
 
   try {
     const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, params.data.id));
-    if (!job) return res.status(404).json({ error: "Job not found" });
+    if (!job) { res.status(404).json({ error: "Job not found" }); return; }
     res.json(serializeJob(job));
   } catch (err) {
     req.log.error({ err }, "Failed to get job");
@@ -67,9 +67,9 @@ router.get("/:id", async (req, res) => {
 
 router.patch("/:id", async (req, res) => {
   const params = UpdateJobParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) return res.status(400).json({ error: "Invalid id" });
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
   const body = UpdateJobBody.safeParse(req.body);
-  if (!body.success) return res.status(400).json({ error: body.error.message });
+  if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
 
   try {
     const [job] = await db
@@ -85,7 +85,7 @@ router.patch("/:id", async (req, res) => {
       })
       .where(eq(jobsTable.id, params.data.id))
       .returning();
-    if (!job) return res.status(404).json({ error: "Job not found" });
+    if (!job) { res.status(404).json({ error: "Job not found" }); return; }
     res.json(serializeJob(job));
   } catch (err) {
     req.log.error({ err }, "Failed to update job");
@@ -95,7 +95,7 @@ router.patch("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   const params = DeleteJobParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) return res.status(400).json({ error: "Invalid id" });
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
 
   try {
     await db.delete(jobsTable).where(eq(jobsTable.id, params.data.id));

@@ -13,7 +13,6 @@ export default function CandidatesPage() {
   const [search, setSearch] = useState("");
   const { data: candidates, isLoading } = useListCandidates(
     search ? { search } : undefined,
-    { query: { enabled: true } }
   );
   const { data: stats } = useGetCandidateStats();
 

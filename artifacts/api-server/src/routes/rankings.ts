@@ -28,13 +28,13 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const parsed = CreateRankingBody.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const { jobId, topN = 15, minScore = 40 } = parsed.data;
 
   try {
     const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, jobId));
-    if (!job) return res.status(404).json({ error: "Job not found" });
+    if (!job) { res.status(404).json({ error: "Job not found" }); return; }
 
     const [run] = await db
       .insert(rankingRunsTable)
@@ -53,8 +53,7 @@ router.post("/", async (req, res) => {
       .sort((a, b) => b.compositeScore - a.compositeScore)
       .slice(0, topN ?? 15);
 
-    // Generate rationale for top candidates (up to 10 with AI, rest basic)
-    const rationalePromises = filtered.map((s, idx) =>
+    const rationalePromises = filtered.map((s) =>
       generateRationale(
         job.title,
         (job.requiredSkills as string[]) ?? [],
@@ -107,21 +106,17 @@ router.post("/", async (req, res) => {
     res.status(201).json(serializeRun(updated, job.title));
   } catch (err) {
     req.log.error({ err }, "Failed to create ranking");
-    await db
-      .update(rankingRunsTable)
-      .set({ status: "failed" })
-      .where(eq(rankingRunsTable.id, req.body?.runId));
     res.status(500).json({ error: "Failed to create ranking" });
   }
 });
 
 router.get("/:id", async (req, res) => {
   const params = GetRankingParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) return res.status(400).json({ error: "Invalid id" });
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
 
   try {
     const [run] = await db.select().from(rankingRunsTable).where(eq(rankingRunsTable.id, params.data.id));
-    if (!run) return res.status(404).json({ error: "Ranking not found" });
+    if (!run) { res.status(404).json({ error: "Ranking not found" }); return; }
 
     const [job] = await db.select({ title: jobsTable.title }).from(jobsTable).where(eq(jobsTable.id, run.jobId));
     const results = await fetchResultsWithCandidates(run.id);
@@ -138,7 +133,7 @@ router.get("/:id", async (req, res) => {
 
 router.get("/:id/results", async (req, res) => {
   const params = ListRankedCandidatesParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) return res.status(400).json({ error: "Invalid id" });
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
 
   try {
     const results = await fetchResultsWithCandidates(params.data.id);
@@ -151,12 +146,14 @@ router.get("/:id/results", async (req, res) => {
 
 router.get("/:id/export", async (req, res) => {
   const params = ExportRankingParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) return res.status(400).json({ error: "Invalid id" });
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
 
   try {
     const results = await fetchResultsWithCandidates(params.data.id);
     const [run] = await db.select().from(rankingRunsTable).where(eq(rankingRunsTable.id, params.data.id));
-    const [job] = run ? await db.select({ title: jobsTable.title }).from(jobsTable).where(eq(jobsTable.id, run.jobId)) : [null];
+    const [job] = run
+      ? await db.select({ title: jobsTable.title }).from(jobsTable).where(eq(jobsTable.id, run.jobId))
+      : [null];
 
     const headers = ["Rank","Name","Title","Company","Years Exp","Education","Composite Score","Semantic","Experience","Education Score","Activity","Trajectory","Matched Skills","Missing Skills","Rationale"];
     const rows = results.map((r) => [
@@ -192,7 +189,7 @@ router.get("/:id/export", async (req, res) => {
 
 router.get("/:id/stats", async (req, res) => {
   const params = GetRankingStatsParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) return res.status(400).json({ error: "Invalid id" });
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
 
   try {
     const results = await db
@@ -267,22 +264,24 @@ async function fetchResultsWithCandidates(rankingId: number) {
     ]),
   );
 
-  return results.map((r) => ({
-    id: r.id,
-    rankingId: r.rankingId,
-    candidateId: r.candidateId,
-    rank: r.rank,
-    compositeScore: r.compositeScore,
-    semanticScore: r.semanticScore,
-    experienceScore: r.experienceScore,
-    educationScore: r.educationScore,
-    activityScore: r.activityScore,
-    trajectoryScore: r.trajectoryScore,
-    rationale: r.rationale,
-    matchedSkills: (r.matchedSkills as string[]) ?? [],
-    missingSkills: (r.missingSkills as string[]) ?? [],
-    candidate: candMap.get(r.candidateId)!,
-  }));
+  return results
+    .filter((r) => candMap.has(r.candidateId))
+    .map((r) => ({
+      id: r.id,
+      rankingId: r.rankingId,
+      candidateId: r.candidateId,
+      rank: r.rank,
+      compositeScore: r.compositeScore,
+      semanticScore: r.semanticScore,
+      experienceScore: r.experienceScore,
+      educationScore: r.educationScore,
+      activityScore: r.activityScore,
+      trajectoryScore: r.trajectoryScore,
+      rationale: r.rationale,
+      matchedSkills: (r.matchedSkills as string[]) ?? [],
+      missingSkills: (r.missingSkills as string[]) ?? [],
+      candidate: candMap.get(r.candidateId)!,
+    }));
 }
 
 function serializeRun(run: typeof rankingRunsTable.$inferSelect, jobTitle: string | null) {

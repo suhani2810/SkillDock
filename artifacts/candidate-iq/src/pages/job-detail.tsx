@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useGetJob, useUpdateJob, getGetJobQueryKey, getListJobsQueryKey } from "@workspace/api-client-react";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ export default function JobDetailPage() {
   const queryClient = useQueryClient();
   const jobId = Number(id);
 
-  const { data: job, isLoading } = useGetJob(jobId, { query: { enabled: !!jobId } });
+  const { data: job, isLoading } = useGetJob(jobId, { query: { queryKey: getGetJobQueryKey(jobId), enabled: !!jobId } });
   const updateJob = useUpdateJob();
 
   const [editing, setEditing] = useState(false);

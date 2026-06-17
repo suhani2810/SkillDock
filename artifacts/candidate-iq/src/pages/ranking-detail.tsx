@@ -2,7 +2,8 @@ import React, { useState, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import {
   useGetRanking, useListRankedCandidates, useGetRankingStats, useExportRanking,
-  getGetRankingQueryKey,
+  getGetRankingQueryKey, getListRankedCandidatesQueryKey,
+  getGetRankingStatsQueryKey, getExportRankingQueryKey,
 } from "@workspace/api-client-react";
 import {
   ArrowLeft, Download, Search, ChevronDown, ChevronUp, Trophy,
@@ -89,10 +90,10 @@ export default function RankingDetailPage() {
   const [, navigate] = useLocation();
   const rankingId = Number(id);
 
-  const { data: run, isLoading: runLoading } = useGetRanking(rankingId, { query: { enabled: !!rankingId } });
-  const { data: results, isLoading: resultsLoading } = useListRankedCandidates(rankingId, { query: { enabled: !!rankingId } });
-  const { data: stats } = useGetRankingStats(rankingId, { query: { enabled: !!rankingId } });
-  const { refetch: fetchExport } = useExportRanking(rankingId, { query: { enabled: false } });
+  const { data: run, isLoading: runLoading } = useGetRanking(rankingId, { query: { queryKey: getGetRankingQueryKey(rankingId), enabled: !!rankingId } });
+  const { data: results, isLoading: resultsLoading } = useListRankedCandidates(rankingId, { query: { queryKey: getListRankedCandidatesQueryKey(rankingId), enabled: !!rankingId } });
+  const { data: stats } = useGetRankingStats(rankingId, { query: { queryKey: getGetRankingStatsQueryKey(rankingId), enabled: !!rankingId } });
+  const { refetch: fetchExport } = useExportRanking(rankingId, { query: { queryKey: getExportRankingQueryKey(rankingId), enabled: false } });
 
   const [search, setSearch] = useState("");
   const [minScoreFilter, setMinScoreFilter] = useState(0);
@@ -110,15 +111,16 @@ export default function RankingDetailPage() {
   const filtered = useMemo(() => {
     if (!results) return [];
     return results
+      .filter((r) => r.candidate != null)
       .filter((r) => {
         if (r.compositeScore < minScoreFilter) return false;
         if (search) {
           const q = search.toLowerCase();
           return (
-            r.candidate.name.toLowerCase().includes(q) ||
-            (r.candidate.currentTitle ?? "").toLowerCase().includes(q) ||
-            (r.candidate.currentCompany ?? "").toLowerCase().includes(q) ||
-            (r.candidate.skills ?? []).some((s) => s.toLowerCase().includes(q))
+            r.candidate!.name.toLowerCase().includes(q) ||
+            (r.candidate!.currentTitle ?? "").toLowerCase().includes(q) ||
+            (r.candidate!.currentCompany ?? "").toLowerCase().includes(q) ||
+            (r.candidate!.skills ?? []).some((s) => s.toLowerCase().includes(q))
           );
         }
         return true;
@@ -283,9 +285,9 @@ export default function RankingDetailPage() {
                     <ScoreRing score={r.compositeScore} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold">{r.candidate.name}</span>
-                        {r.candidate.currentTitle && <span className="text-sm text-muted-foreground">{r.candidate.currentTitle}</span>}
-                        {r.candidate.currentCompany && <span className="text-sm text-muted-foreground">at {r.candidate.currentCompany}</span>}
+                        <span className="font-semibold">{r.candidate?.name}</span>
+                        {r.candidate?.currentTitle && <span className="text-sm text-muted-foreground">{r.candidate.currentTitle}</span>}
+                        {r.candidate?.currentCompany && <span className="text-sm text-muted-foreground">at {r.candidate.currentCompany}</span>}
                       </div>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {(r.matchedSkills ?? []).slice(0, 3).map((s) => (
@@ -354,10 +356,10 @@ export default function RankingDetailPage() {
 
                       {/* Candidate meta */}
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        {r.candidate.yearsExperience != null && <div><span className="font-medium text-foreground">Experience:</span> {r.candidate.yearsExperience} years</div>}
-                        {r.candidate.educationLevel && <div><span className="font-medium text-foreground">Education:</span> {r.candidate.educationLevel}</div>}
-                        {r.candidate.location && <div><span className="font-medium text-foreground">Location:</span> {r.candidate.location}</div>}
-                        {r.candidate.email && <div><span className="font-medium text-foreground">Email:</span> {r.candidate.email}</div>}
+                        {r.candidate?.yearsExperience != null && <div><span className="font-medium text-foreground">Experience:</span> {r.candidate.yearsExperience} years</div>}
+                        {r.candidate?.educationLevel && <div><span className="font-medium text-foreground">Education:</span> {r.candidate.educationLevel}</div>}
+                        {r.candidate?.location && <div><span className="font-medium text-foreground">Location:</span> {r.candidate.location}</div>}
+                        {r.candidate?.email && <div><span className="font-medium text-foreground">Email:</span> {r.candidate.email}</div>}
                       </div>
                     </div>
                   )}

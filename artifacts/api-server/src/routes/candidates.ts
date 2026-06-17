@@ -76,7 +76,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const parsed = CreateCandidateBody.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   try {
     const [candidate] = await db
@@ -95,11 +95,11 @@ router.post("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   const params = GetCandidateParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) return res.status(400).json({ error: "Invalid id" });
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
 
   try {
     const [candidate] = await db.select().from(candidatesTable).where(eq(candidatesTable.id, params.data.id));
-    if (!candidate) return res.status(404).json({ error: "Candidate not found" });
+    if (!candidate) { res.status(404).json({ error: "Candidate not found" }); return; }
     res.json(serializeCandidate(candidate));
   } catch (err) {
     req.log.error({ err }, "Failed to get candidate");
