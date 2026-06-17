@@ -1,0 +1,29 @@
+lib/models/alarm_entity.g.dart:18:8: Error: The integer literal 6964666276016564105 can't be represented exactly in JavaScript.
+Try changing the literal to something that can be represented in JavaScript. In JavaScript 6964666276016564224 is the nearest value that can be represented exactly.
+  id: -6964666276016564105,
+       ^^^^^^^^^^^^^^^^^^^
+lib/models/mood_entry_entity.g.dart:18:7: Error: The integer literal 3709314564821665887 can't be represented exactly in JavaScript.
+Try changing the literal to something that can be represented in JavaScript. In JavaScript 3709314564821665792 is the nearest value that can be represented exactly.
+  id: 3709314564821665887,
+      ^^^^^^^^^^^^^^^^^^^
+lib/models/mood_entry_entity.g.dart:43:12: Error: The integer literal 7552997827385218417 can't be represented exactly in JavaScript.
+Try changing the literal to something that can be represented in JavaScript. In JavaScript 7552997827385218048 is the nearest value that can be represented exactly.
+      id: -7552997827385218417,
+           ^^^^^^^^^^^^^^^^^^^
+lib/models/wakeup_entity.g.dart:18:8: Error: The integer literal 4344387555195756013 can't be represented exactly in JavaScript.
+Try changing the literal to something that can be represented in JavaScript. In JavaScript 4344387555195756032 is the nearest value that can be represented exactly.
+  id: -4344387555195756013,
+       ^^^^^^^^^^^^^^^^^^^
+lib/models/streak_entity.g.dart:18:7: Error: The integer literal 815451123336840549 can't be represented exactly in JavaScript.
+Try changing the literal to something that can be represented in JavaScript. In JavaScript 815451123336840576 is the nearest value that can be represented exactly.
+  id: 815451123336840549,
+      ^^^^^^^^^^^^^^^^^^
+lib/models/mission_completion_entity.g.dart:19:8: Error: The integer literal 1088786403886864316 can't be represented exactly in JavaScript.
+Try changing the literal to something that can be represented in JavaScript. In JavaScript 1088786403886864256 is the nearest value that can be represented exactly.
+  id: -1088786403886864316,
+       ^^^^^^^^^^^^^^^^^^^
+lib/models/morning_audio_entity.g.dart:19:7: Error: The integer literal 3533174856216890494 can't be represented exactly in JavaScript.
+Try changing the literal to something that can be represented in JavaScript. In JavaScript 3533174856216890368 is the nearest value that can be represented exactly.
+  id: 3533174856216890494,
+      ^^^^^^^^^^^^^^^^^^^
+Failed to compile application.
