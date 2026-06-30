@@ -35,6 +35,89 @@ const EDUCATION_TIERS: Record<string, number> = {
   none: 0,
 };
 
+const AI_RETRIEVAL_EVIDENCE = [
+  {
+    label: "Embeddings-based retrieval",
+    weight: 1.15,
+    terms: ["embedding", "embeddings", "sentence transformer", "sentence-transformers", "bge", "e5", "semantic search", "dense retrieval", "retrieval", "rag"],
+  },
+  {
+    label: "Vector databases",
+    weight: 1.05,
+    terms: ["vector database", "vector db", "pinecone", "weaviate", "qdrant", "milvus", "faiss", "opensearch", "elasticsearch", "ann index", "nearest neighbor"],
+  },
+  {
+    label: "Hybrid search",
+    weight: 0.9,
+    terms: ["hybrid search", "bm25", "keyword retrieval", "sparse retrieval", "reranking", "re-ranking", "search infrastructure"],
+  },
+  {
+    label: "Ranking systems",
+    weight: 1.2,
+    terms: ["ranking system", "ranker", "learning to rank", "learning-to-rank", "recommendation system", "recommender", "candidate matching", "search ranking"],
+  },
+  {
+    label: "Evaluation frameworks",
+    weight: 1.1,
+    terms: ["ndcg", "mrr", "map", "offline evaluation", "online evaluation", "a/b test", "ab test", "offline benchmark", "relevance", "recruiter feedback"],
+  },
+  {
+    label: "Production ML systems",
+    weight: 1.15,
+    terms: ["production ml", "deployed", "real users", "model serving", "ml pipeline", "feature pipeline", "monitoring", "drift", "index refresh", "quality regression"],
+  },
+  {
+    label: "Python",
+    weight: 0.8,
+    terms: ["python", "pytorch", "tensorflow", "scikit", "fastapi", "flask"],
+  },
+  {
+    label: "LLMs",
+    weight: 0.8,
+    terms: ["llm", "llms", "large language model", "fine tuning", "fine-tuning", "lora", "qlora", "peft", "prompting"],
+  },
+];
+
+const PRODUCT_ENGINEERING_TERMS = [
+  "product company",
+  "product engineering",
+  "shipped",
+  "owned",
+  "production",
+  "real users",
+  "scale",
+  "startup",
+  "founding",
+  "end-to-end",
+];
+
+const NEGATIVE_TITLE_TERMS = [
+  "marketing",
+  "content",
+  "sales",
+  "hr manager",
+  "recruiter",
+  "designer",
+  "finance",
+  "accountant",
+  "customer support",
+  "operations",
+];
+
+const POSITIVE_TITLE_TERMS = [
+  "ai engineer",
+  "ml engineer",
+  "machine learning",
+  "data scientist",
+  "search engineer",
+  "ranking",
+  "recommendation",
+  "backend engineer",
+  "data engineer",
+  "software engineer",
+  "applied scientist",
+];
+
 function normalizeSkill(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9+#.]/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -45,6 +128,25 @@ function tokenize(text: string): string[] {
     .replace(/[^a-z0-9+#.]/g, " ")
     .split(/\s+/)
     .filter((t) => t.length > 1);
+}
+
+function candidateDocument(candidate: Candidate): string {
+  return [
+    candidate.currentTitle ?? "",
+    candidate.currentCompany ?? "",
+    candidate.educationLevel ?? "",
+    candidate.location ?? "",
+    ...(candidate.skills ?? []),
+    candidate.resumeText ?? "",
+  ].join(" ");
+}
+
+function includesAny(text: string, terms: string[]): boolean {
+  return terms.some((term) => text.includes(term));
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
 function tfidfSimilarity(docA: string, docB: string, boostTerms: string[]): number {
@@ -67,10 +169,15 @@ function tfidfSimilarity(docA: string, docB: string, boostTerms: string[]): numb
 }
 
 function scoreSkillMatch(job: Job, candidate: Candidate): { score: number; matched: string[]; missing: string[] } {
-  const required = (job.requiredSkills ?? []).map(normalizeSkill);
-  const preferred = (job.preferredSkills ?? []).map(normalizeSkill);
-  const candidateSkills = (candidate.skills ?? []).map(normalizeSkill);
-  const resumeTokens = new Set(tokenize(candidate.resumeText ?? ""));
+  const jobRequiredSkills = asStringArray(job.requiredSkills);
+  const jobPreferredSkills = asStringArray(job.preferredSkills);
+  const rawCandidateSkills = asStringArray(candidate.skills);
+  const required = jobRequiredSkills.map(normalizeSkill);
+  const preferred = jobPreferredSkills.map(normalizeSkill);
+  const candidateSkills = rawCandidateSkills.map(normalizeSkill);
+  const doc = candidateDocument(candidate);
+  const docLower = doc.toLowerCase();
+  const resumeTokens = new Set(tokenize(doc));
 
   const hasSkill = (skill: string) =>
     candidateSkills.some((cs) => cs.includes(skill) || skill.includes(cs)) ||
@@ -80,25 +187,45 @@ function scoreSkillMatch(job: Job, candidate: Candidate): { score: number; match
   const matched: string[] = [];
   const missing: string[] = [];
 
-  for (const skill of (job.requiredSkills ?? [])) {
+  for (const skill of jobRequiredSkills) {
     if (hasSkill(normalizeSkill(skill))) matched.push(skill);
     else missing.push(skill);
   }
-  for (const skill of (job.preferredSkills ?? [])) {
+  for (const skill of jobPreferredSkills) {
     if (hasSkill(normalizeSkill(skill)) && !matched.includes(skill)) matched.push(skill);
   }
+
+  const roleIsAIRetrieval = `${job.title} ${job.rawText} ${job.domain ?? ""}`.toLowerCase();
+  const evidenceGroups = roleIsAIRetrieval.includes("retrieval") || roleIsAIRetrieval.includes("ranking") || roleIsAIRetrieval.includes("ai engineer")
+    ? AI_RETRIEVAL_EVIDENCE
+    : [];
+
+  let evidenceScore = 0;
+  let maxEvidenceScore = 0;
+  for (const group of evidenceGroups) {
+    maxEvidenceScore += group.weight;
+    if (includesAny(docLower, group.terms)) {
+      evidenceScore += group.weight;
+      if (!matched.includes(group.label)) matched.push(group.label);
+    } else if (jobRequiredSkills.includes(group.label) && !missing.includes(group.label)) {
+      missing.push(group.label);
+    }
+  }
+
+  const normalizedEvidence = maxEvidenceScore > 0 ? evidenceScore / maxEvidenceScore : 0;
+  const productSignal = includesAny(docLower, PRODUCT_ENGINEERING_TERMS) ? 0.08 : 0;
 
   const requiredHit = required.length > 0 ? matched.filter((s) => required.includes(normalizeSkill(s))).length / required.length : 0.5;
   const preferredBonus = preferred.length > 0 ? Math.min(matched.filter((s) => preferred.includes(normalizeSkill(s))).length / preferred.length * 0.3, 0.3) : 0;
 
   // Also factor in resume text similarity
   const resumeSim = tfidfSimilarity(
-    [candidate.resumeText ?? "", ...(candidate.skills ?? [])].join(" "),
-    [job.rawText, ...(job.requiredSkills ?? []), ...(job.preferredSkills ?? [])].join(" "),
-    [...(job.requiredSkills ?? []), ...(job.preferredSkills ?? [])],
+    doc,
+    [job.rawText, ...jobRequiredSkills, ...jobPreferredSkills].join(" "),
+    [...jobRequiredSkills, ...jobPreferredSkills],
   );
 
-  const score = Math.min(1, requiredHit * 0.5 + preferredBonus + resumeSim * 0.5);
+  const score = Math.min(1, requiredHit * 0.25 + preferredBonus + resumeSim * 0.25 + normalizedEvidence * 0.42 + productSignal);
   return { score, matched, missing };
 }
 
@@ -110,7 +237,10 @@ function scoreExperience(job: Job, candidate: Candidate): number {
 
   if (candidateYears >= required) {
     const excess = candidateYears - required;
-    return Math.min(0.7 + excess * 0.03, 1.0);
+    const base = Math.min(0.7 + excess * 0.03, 1.0);
+    const jdText = `${job.title} ${job.rawText}`.toLowerCase();
+    if (jdText.includes("5") && jdText.includes("9") && candidateYears > 12) return Math.max(0.75, base - 0.12);
+    return base;
   } else {
     return Math.max(0, (candidateYears / required) * 0.7);
   }
@@ -153,6 +283,7 @@ function scoreTrajectory(job: Job, candidate: Candidate): number {
   const title = (candidate.currentTitle ?? "").toLowerCase();
   const domain = (job.domain ?? "").toLowerCase();
   const seniority = (job.seniorityLevel ?? "").toLowerCase();
+  const doc = candidateDocument(candidate).toLowerCase();
 
   let score = 0.5;
 
@@ -172,6 +303,12 @@ function scoreTrajectory(job: Job, candidate: Candidate): number {
   if (domain && (title.includes(domain) || (candidate.resumeText ?? "").toLowerCase().includes(domain))) {
     score += 0.2;
   }
+
+  if (POSITIVE_TITLE_TERMS.some((t) => title.includes(t))) score += 0.18;
+  if (NEGATIVE_TITLE_TERMS.some((t) => title.includes(t))) score -= 0.35;
+  if (includesAny(doc, PRODUCT_ENGINEERING_TERMS)) score += 0.1;
+  if (includesAny(doc, ["consulting firm", "services company", "it services"]) && !includesAny(doc, ["product", "real users", "production"])) score -= 0.08;
+  if (includesAny(doc, ["pure research", "academic lab", "research-only"])) score -= 0.2;
 
   return Math.max(0, Math.min(1, score));
 }

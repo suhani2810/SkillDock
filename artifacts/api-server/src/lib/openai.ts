@@ -118,13 +118,13 @@ function generateRationaleBasic(
   candidate: { name: string; currentTitle?: string | null; yearsExperience?: number | null },
   scores: { compositeScore: number; matchedSkills: string[]; missingSkills: string[] },
 ): string {
-  const matched = scores.matchedSkills.slice(0, 3).join(", ");
-  const missing = scores.missingSkills.slice(0, 2).join(", ");
+  const matched = scores.matchedSkills.slice(0, 4).join(", ");
+  const missing = scores.missingSkills.slice(0, 3).join(", ");
   const exp = candidate.yearsExperience ?? 0;
-  let rationale = `${candidate.name} scored ${scores.compositeScore}/100 for the ${jobTitle} role.`;
-  if (matched) rationale += ` Strong alignment on ${matched}.`;
-  if (missing) rationale += ` Notable gaps include ${missing}.`;
-  if (exp > 0) rationale += ` ${exp} years of relevant experience.`;
+  const title = candidate.currentTitle ?? "candidate";
+  let rationale = `${candidate.name} is a ${title} with ${exp || "unknown"} years of experience and a ${scores.compositeScore}/100 fit for ${jobTitle}.`;
+  if (matched) rationale += ` The strongest evidence is ${matched}.`;
+  if (missing) rationale += ` Remaining gaps to verify: ${missing}.`;
   return rationale;
 }
 
