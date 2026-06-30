@@ -5,10 +5,17 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "db:setup": "tsc -p tsconfig.json && node ./dist/setup-db.js",
+    "seed:redrob-job": "tsc -p tsconfig.json && node ./dist/seed-redrob-job.js",
+    "import:candidates": "tsc -p tsconfig.json && node ./dist/import-candidates.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/pg": "^8.20.0",
     "tsx": "catalog:"
   }
 }
