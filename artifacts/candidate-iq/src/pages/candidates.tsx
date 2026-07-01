@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { useListCandidates, useGetCandidateStats } from "@workspace/api-client-react";
-import { Search, Users, GraduationCap, Briefcase, MapPin, Star } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
-const COLORS = ["#6366f1", "#8b5cf6", "#a78bfa", "#c4b5fd", "#ddd6fe", "#ede9fe"];
+const COLORS = ["#d4a574", "#9ca3af", "#d1d5db", "#e5e7eb", "#f3f4f6", "#fafafa"];
 
 export default function CandidatesPage() {
   const [search, setSearch] = useState("");
@@ -16,36 +16,44 @@ export default function CandidatesPage() {
   );
   const { data: stats } = useGetCandidateStats();
 
-  const activityColor = (score: number | null | undefined) => {
-    if (!score) return "text-muted-foreground";
-    if (score >= 85) return "text-emerald-600";
-    if (score >= 70) return "text-amber-600";
-    return "text-muted-foreground";
-  };
+  // Ensure arrays are always safe
+  const candidatesArray = Array.isArray(candidates) ? candidates : [];
+  const educationBreakdown = Array.isArray(stats?.educationBreakdown)
+    ? stats.educationBreakdown
+    : [];
+  const topSkills = Array.isArray(stats?.topSkills) ? stats.topSkills : [];
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Candidate Pool</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-4xl font-light font-serif text-slate-900 tracking-tight mb-2">
+          Talent Pool
+        </h1>
+        <p className="text-slate-600 font-light">
           {stats?.total ?? 0} candidates available for ranking.
         </p>
       </div>
 
-      {stats && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Education Breakdown</CardTitle>
+      {/* Stats Section */}
+      {stats && educationBreakdown.length > 0 && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card className="border-slate-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm uppercase tracking-wider font-semibold text-slate-600">
+                Education Breakdown
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={140}>
-                <BarChart data={stats.educationBreakdown} layout="vertical" margin={{ left: 0, right: 16 }}>
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={100} />
-                  <Tooltip contentStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                    {stats.educationBreakdown.map((_, i) => (
+                <BarChart data={educationBreakdown} layout="vertical" margin={{ left: 0, right: 16 }}>
+                  <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                  <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={100} stroke="#94a3b8" />
+                  <Tooltip
+                    contentStyle={{ fontSize: 12, backgroundColor: "#f8fafc", border: "1px solid #e2e8f0" }}
+                  />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]} fill="#d4a574">
+                    {educationBreakdown.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Bar>
@@ -54,16 +62,18 @@ export default function CandidatesPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Top Skills in Pool</CardTitle>
+          <Card className="border-slate-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm uppercase tracking-wider font-semibold text-slate-600">
+                Top Skills in Pool
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-1.5">
-                {stats.topSkills.map((s, i) => (
-                  <Badge key={s.label} variant="secondary" className="text-xs gap-1.5">
+              <div className="flex flex-wrap gap-2">
+                {topSkills.slice(0, 8).map((s, i) => (
+                  <Badge key={s.label} variant="secondary" className="text-xs bg-amber-100 text-amber-900 border-amber-200">
                     {s.label}
-                    <span className="font-mono text-muted-foreground">{s.count}</span>
+                    <span className="font-mono text-amber-700 ml-1">({s.count})</span>
                   </Badge>
                 ))}
               </div>
@@ -72,63 +82,74 @@ export default function CandidatesPage() {
         </div>
       )}
 
+      {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
           placeholder="Search by name, title, or company..."
-          className="pl-9"
+          className="pl-9 border-slate-300 bg-white text-slate-900 placeholder:text-slate-500"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
+      {/* Candidates List */}
       {isLoading ? (
-        <div className="grid gap-3">
-          {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))}
         </div>
-      ) : !candidates?.length ? (
-        <Card className="border-dashed">
+      ) : candidatesArray.length === 0 ? (
+        <Card className="border-dashed border-slate-300 bg-slate-50/50">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Users className="h-8 w-8 text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">{search ? "No candidates match your search." : "No candidates in the pool yet."}</p>
+            <div className="mb-3 p-3 bg-white rounded-full">
+              <Users className="h-6 w-6 text-slate-400" />
+            </div>
+            <p className="text-slate-600 text-sm">
+              {search ? "No candidates match your search." : "No candidates in the pool yet."}
+            </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3">
-          {candidates.map((c) => (
-            <Card key={c.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
+        <div className="space-y-3">
+          {candidatesArray.map((c) => (
+            <Card key={c.id} className="border-slate-200 hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold">{c.name}</h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-slate-900 truncate">{c.name}</h3>
                       {c.activityScore && (
-                        <span className={`flex items-center gap-0.5 text-xs font-medium ${activityColor(c.activityScore)}`}>
-                          <Star className="h-3 w-3" />{c.activityScore}
+                        <span className={`text-xs font-medium ${c.activityScore >= 85 ? "text-green-600" : c.activityScore >= 70 ? "text-amber-600" : "text-slate-500"}`}>
+                          ★ {c.activityScore}
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground mb-2">
-                      {c.currentTitle && <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" />{c.currentTitle}</span>}
-                      {c.currentCompany && <span>at {c.currentCompany}</span>}
-                      {c.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{c.location}</span>}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600 mb-2">
+                      {c.currentTitle && <span>{c.currentTitle}</span>}
+                      {c.currentCompany && <span className="text-slate-500">at {c.currentCompany}</span>}
+                      {c.location && <span className="text-slate-500">• {c.location}</span>}
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {(c.skills ?? []).slice(0, 6).map((s) => (
-                        <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
+                        <Badge key={s} variant="secondary" className="text-xs bg-slate-100 text-slate-700 border-0">
+                          {s}
+                        </Badge>
                       ))}
                       {(c.skills ?? []).length > 6 && (
-                        <Badge variant="secondary" className="text-xs">+{(c.skills ?? []).length - 6}</Badge>
+                        <Badge variant="secondary" className="text-xs text-slate-600">
+                          +{(c.skills ?? []).length - 6}
+                        </Badge>
                       )}
                     </div>
                   </div>
-                  <div className="text-right shrink-0 text-sm text-muted-foreground">
-                    {c.yearsExperience != null && <div className="font-medium">{c.yearsExperience} yrs</div>}
+                  <div className="text-right flex-shrink-0 text-sm text-slate-600">
+                    {c.yearsExperience != null && (
+                      <div className="font-semibold text-slate-900">{c.yearsExperience} yrs</div>
+                    )}
                     {c.educationLevel && (
-                      <div className="flex items-center gap-1 justify-end mt-1">
-                        <GraduationCap className="h-3 w-3" />
-                        <span className="text-xs">{c.educationLevel}</span>
-                      </div>
+                      <div className="text-xs mt-1 text-slate-500">{c.educationLevel}</div>
                     )}
                   </div>
                 </div>

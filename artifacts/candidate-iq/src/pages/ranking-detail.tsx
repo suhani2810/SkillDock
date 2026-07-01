@@ -100,6 +100,9 @@ export default function RankingDetailPage() {
   const [sortBy, setSortBy] = useState<"compositeScore" | "semanticScore" | "experienceScore">("compositeScore");
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
+  // Ensure results is always an array
+  const resultsArray = Array.isArray(results) ? results : [];
+
   const toggleExpand = (id: number) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -109,8 +112,8 @@ export default function RankingDetailPage() {
   };
 
   const filtered = useMemo(() => {
-    if (!results) return [];
-    return results
+    if (resultsArray.length === 0) return [];
+    return resultsArray
       .filter((r) => r.candidate != null)
       .filter((r) => {
         if (r.compositeScore < minScoreFilter) return false;
@@ -126,7 +129,7 @@ export default function RankingDetailPage() {
         return true;
       })
       .sort((a, b) => (b[sortBy] ?? 0) - (a[sortBy] ?? 0));
-  }, [results, search, minScoreFilter, sortBy]);
+  }, [resultsArray, search, minScoreFilter, sortBy]);
 
   const handleExport = async () => {
     const { data } = await fetchExport();

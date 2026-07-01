@@ -1,119 +1,126 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useListJobs, useDeleteJob, getListJobsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Briefcase, Trash2, ArrowRight, ChevronRight, Clock } from "lucide-react";
+import { Plus, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { PremiumJobCard } from "@/components/premium-job-card";
 
 export default function JobsPage() {
   const { data: jobs, isLoading } = useListJobs();
   const deleteJob = useDeleteJob();
   const queryClient = useQueryClient();
-  const [, navigate] = useLocation();
+  const { toast } = useToast();
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Ensure jobs is always an array
+  const jobsArray = Array.isArray(jobs) ? jobs : [];
 
   const handleDelete = async () => {
     if (deleteId == null) return;
-    await deleteJob.mutateAsync({ id: deleteId });
-    queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
-    setDeleteId(null);
+    setIsDeleting(true);
+    try {
+      await deleteJob.mutateAsync({ id: deleteId });
+      queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
+      toast({ title: "Job deleted successfully" });
+      setDeleteId(null);
+    } catch (error) {
+      toast({
+        title: "Failed to delete job",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Job Descriptions</h1>
-          <p className="text-muted-foreground mt-1">Manage and rank against your saved job descriptions.</p>
+          <h1 className="text-4xl font-light font-serif text-slate-900 tracking-tight mb-2">
+            Briefs
+          </h1>
+          <p className="text-slate-600 font-light">
+            Manage your job openings and rank candidates against them.
+          </p>
         </div>
-        <Button asChild>
-          <Link href="/jobs/new">
-            <Plus className="h-4 w-4 mr-2" /> New Job
-          </Link>
-        </Button>
+        <Link href="/jobs/new">
+          <Button className="gap-2 bg-amber-600 hover:bg-amber-700">
+            <Plus className="h-4 w-4" /> New Job
+          </Button>
+        </Link>
       </div>
 
+      {/* Content */}
       {isLoading ? (
-        <div className="grid gap-4">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-28 w-full rounded-lg" />)}
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))}
         </div>
-      ) : !jobs?.length ? (
-        <Card className="border-dashed">
+      ) : jobsArray.length === 0 ? (
+        <Card className="border-dashed border-slate-300 bg-slate-50/50">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <Briefcase className="h-10 w-10 text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg">No job descriptions yet</h3>
-            <p className="text-muted-foreground text-sm mt-1 mb-6 max-w-xs">
-              Paste in a job description and let AI extract the key requirements.
+            <div className="mb-4 p-3 bg-white rounded-full">
+              <Briefcase className="h-8 w-8 text-slate-400" />
+            </div>
+            <h3 className="font-medium text-slate-900 text-lg mb-2">
+              No briefs yet
+            </h3>
+            <p className="text-slate-600 text-sm mb-6 max-w-xs">
+              Create a new brief to begin curating candidates.
             </p>
-            <Button asChild>
-              <Link href="/jobs/new"><Plus className="h-4 w-4 mr-2" />Add first job</Link>
-            </Button>
+            <Link href="/jobs/new">
+              <Button variant="outline">Add First Brief</Button>
+            </Link>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3">
-          {jobs.map((job) => (
-            <Card key={job.id} className="group hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/jobs/${job.id}`)}>
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-base truncate">{job.title}</h3>
-                      {job.seniorityLevel && (
-                        <Badge variant="secondary" className="capitalize shrink-0">{job.seniorityLevel}</Badge>
-                      )}
-                      {job.domain && (
-                        <Badge variant="outline" className="shrink-0 capitalize">{job.domain}</Badge>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {(job.requiredSkills ?? []).slice(0, 5).map((skill) => (
-                        <Badge key={skill} variant="secondary" className="text-xs bg-primary/10 text-primary border-0">{skill}</Badge>
-                      ))}
-                      {(job.requiredSkills ?? []).length > 5 && (
-                        <Badge variant="secondary" className="text-xs">+{(job.requiredSkills ?? []).length - 5} more</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(new Date(job.createdAt), "MMM d, yyyy")}</span>
-                      {job.minExperience && <span>{job.minExperience}+ yrs exp</span>}
-                      {job.educationRequirement && <span>{job.educationRequirement}</span>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      variant="ghost" size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive h-8 w-8"
-                      onClick={(e) => { e.stopPropagation(); setDeleteId(job.id); }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <div className="space-y-3">
+          {jobsArray.map((job) => (
+            <Link key={job.id} href={`/jobs/${job.id}`}>
+              <PremiumJobCard
+                id={job.id}
+                title={job.title}
+                domain={job.domain}
+                seniorityLevel={job.seniorityLevel}
+                requiredSkills={job.requiredSkills}
+                minExperience={job.minExperience}
+                educationRequirement={job.educationRequirement}
+                createdAt={job.createdAt}
+                onDelete={() => setDeleteId(job.id)}
+                isDeleting={isDeleting}
+              />
+            </Link>
           ))}
         </div>
       )}
 
-      <AlertDialog open={deleteId != null} onOpenChange={(open) => !open && setDeleteId(null)}>
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete job description?</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently delete this job and all associated rankings.</AlertDialogDescription>
+            <AlertDialogTitle>Delete Brief</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Are you sure you want to delete this brief?
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -140,7 +140,7 @@
   --chart-5: 189 94% 43%;
 
   --app-font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --app-font-serif: Georgia, serif;
+  --app-font-serif: 'Cormorant Garamond', 'Libre Baskerville', Georgia, serif;
   --app-font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --radius: 0.5rem;
 
@@ -227,15 +227,95 @@
 @layer base {
   * {
     @apply border-border;
+    scrollbar-color: var(--theme-scrollbar-thumb) var(--theme-scrollbar);
+    scrollbar-width: thin;
   }
+  :root {
+    --theme-bg: linear-gradient(135deg, #fcfbf8 0%, #f8f6f1 46%, #f2ece2 100%);
+    --theme-surface: rgba(255, 253, 248, 0.82);
+    --theme-surface-alt: rgba(246, 240, 228, 0.96);
+    --theme-border: rgba(23, 37, 59, 0.1);
+    --theme-text: #17253b;
+    --theme-muted: #60718d;
+    --theme-glow: rgba(184, 137, 60, 0.16);
+    --theme-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+    --theme-shadow-lg: 0 36px 120px rgba(15, 23, 42, 0.12);
+    --theme-glass: rgba(255, 253, 248, 0.72);
+    --theme-scrollbar: rgba(15,23,42,0.14);
+    --theme-scrollbar-thumb: rgba(15,23,42,0.28);
+  }
+
+  .dark {
+    --theme-bg: linear-gradient(135deg, #07111d 0%, #0f172a 100%);
+    --theme-surface: rgba(15, 23, 42, 0.84);
+    --theme-surface-alt: rgba(15, 23, 42, 0.96);
+    --theme-border: rgba(255,255,255,0.12);
+    --theme-text: #f4efe7;
+    --theme-muted: #9caec8;
+    --theme-glow: rgba(184, 137, 60, 0.2);
+    --theme-shadow: 0 24px 80px rgba(4, 8, 18, 0.32);
+    --theme-shadow-lg: 0 36px 120px rgba(2, 6, 18, 0.45);
+    --theme-glass: rgba(9, 15, 26, 0.74);
+    --theme-scrollbar: rgba(255,255,255,0.14);
+    --theme-scrollbar-thumb: rgba(255,255,255,0.28);
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    background: var(--theme-bg);
+    color: var(--theme-text);
+    min-height: 100vh;
+    transition: background-color var(--motion-duration) var(--motion-easing), color var(--motion-duration) var(--motion-easing);
+  }
+
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  body::before {
+    background: radial-gradient(circle at top left, var(--theme-glow), transparent 30%);
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+
+  body::after {
+    background-image: linear-gradient(rgba(27, 42, 65, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(27, 42, 65, 0.025) 1px, transparent 1px);
+    background-size: 140px 140px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.35), transparent 85%);
+    opacity: 0.35;
   }
 }
 
 @layer utilities {
+  @keyframes drift {
+    0% { transform: translate3d(-1%, -1%, 0) scale(1); }
+    100% { transform: translate3d(1.2%, 1.2%, 0) scale(1.03); }
+  }
+
+  :root[data-font-size="sm"] { font-size: 15px; }
+  :root[data-font-size="base"] { font-size: 16px; }
+  :root[data-font-size="lg"] { font-size: 17px; }
+
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--theme-scrollbar);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--theme-scrollbar-thumb);
+    border-radius: 999px;
   }
 
   [contenteditable][data-placeholder]:empty::before {

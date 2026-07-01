@@ -51,20 +51,20 @@ export default function RankingsNewPage() {
           <ArrowLeft className="h-4 w-4" /> Dashboard
         </Button>
         <h1 className="text-3xl font-bold tracking-tight">New Ranking Run</h1>
-        <p className="text-muted-foreground mt-1">Score and rank your entire candidate pool against a job description.</p>
+        <p className="text-muted-foreground mt-1">Score and refine your talent pool against a brief.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <Card>
           <CardContent className="pt-5 space-y-5">
             <div className="space-y-2">
-              <Label>Job Description</Label>
+              <Label>Brief</Label>
               {jobsLoading ? (
                 <div className="h-10 bg-muted animate-pulse rounded-md" />
               ) : (
                 <Select value={jobId} onValueChange={setJobId} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a job description..." />
+                    <SelectValue placeholder="Select a brief..." />
                   </SelectTrigger>
                   <SelectContent>
                     {jobs?.map((j) => (
