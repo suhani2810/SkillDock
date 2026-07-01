@@ -8,28 +8,27 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 
-const DEMO_JD = `Senior Full-Stack Engineer
+const DEMO_JD = `Job Description: Senior AI Engineer - Founding Team
+Company: Redrob AI, a Series A AI-native talent intelligence platform
+Location: Pune/Noida, India. Hybrid, flexible cadence. Open to relocation candidates from Tier-1 Indian cities.
+Experience Required: 5-9 years preferred.
 
-Job Title: Senior Full-Stack Engineer
-Location: San Francisco, CA (Remote OK)
+We need a senior AI engineer to own the intelligence layer of Redrob's product: the ranking, retrieval, and matching systems that decide what recruiters see when searching for candidates.
 
-We are looking for a talented Senior Full-Stack Engineer to join our rapidly growing team. You will work with cutting-edge technologies and lead the development of our next-generation product.
+Must-have experience:
+- Production embeddings-based retrieval systems deployed to real users
+- Vector databases or hybrid search infrastructure such as Pinecone, Weaviate, Qdrant, Milvus, OpenSearch, Elasticsearch, or FAISS
+- Strong Python and production ML engineering
+- Ranking system evaluation using NDCG, MRR, MAP, offline benchmarks, online A/B tests, and recruiter feedback loops
+- Ability to ship scrappy product-facing ML systems, not just research prototypes
 
-Core Requirements:
-- 5+ years of professional software development experience
-- Expertise in React, Node.js, and TypeScript
-- Strong understanding of databases (PostgreSQL, MongoDB)
-- Experience with modern DevOps practices and AWS
-- Excellent problem-solving skills
+Nice-to-have:
+- LLM fine-tuning, LoRA, QLoRA, or PEFT
+- Learning-to-rank models such as XGBoost or neural rankers
+- HR-tech, recruiting-tech, marketplace, recommendation, or search product experience
+- Distributed systems or large-scale inference optimization
 
-Preferred Skills:
-- GraphQL or REST APIs
-- Docker and Kubernetes
-- Machine learning or AI
-- Open source contributions
-
-Education:
-- Bachelor's degree in Computer Science or equivalent experience`;
+We do not want shallow keyword-only AI profiles. Strong candidates may have built recommendation, retrieval, search, or matching systems even if they do not list every fashionable framework. Down-rank candidates with only toy LangChain demos, pure research with no deployment, or non-engineering profiles with AI keywords.`;
 
 export default function QuickRankPage() {
   const [, navigate] = useLocation();

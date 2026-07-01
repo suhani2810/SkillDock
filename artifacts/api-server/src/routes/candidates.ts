@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, candidatesTable } from "@workspace/db";
+import { db, candidatesTable, pool } from "@workspace/db";
 import { eq, ilike, or, sql } from "drizzle-orm";
 import {
   GetCandidateParams,
@@ -11,35 +11,35 @@ const router = Router();
 
 router.get("/stats", async (req, res) => {
   try {
-    const allCandidates = await db.select().from(candidatesTable);
-    const total = allCandidates.length;
-    const avgExperience =
-      total > 0
-        ? allCandidates.reduce((sum, c) => sum + (c.yearsExperience ?? 0), 0) / total
-        : 0;
+    const [summary, education, skills] = await Promise.all([
+      pool.query<{ total: number; avg_experience: number | null }>(
+        "select count(*)::int as total, avg(years_experience)::float as avg_experience from candidates",
+      ),
+      pool.query<{ label: string; count: number }>(
+        `
+          select coalesce(education_level, 'Unknown') as label, count(*)::int as count
+          from candidates
+          group by coalesce(education_level, 'Unknown')
+          order by count desc
+          limit 6
+        `,
+      ),
+      pool.query<{ label: string; count: number }>(
+        `
+          select skill.value as label, count(*)::int as count
+          from candidates
+          cross join lateral jsonb_array_elements_text(coalesce(skills, '[]'::jsonb)) as skill(value)
+          group by skill.value
+          order by count desc
+          limit 10
+        `,
+      ),
+    ]);
 
-    const eduMap: Record<string, number> = {};
-    for (const c of allCandidates) {
-      const edu = c.educationLevel ?? "Unknown";
-      eduMap[edu] = (eduMap[edu] ?? 0) + 1;
-    }
-
-    const skillMap: Record<string, number> = {};
-    for (const c of allCandidates) {
-      for (const skill of (c.skills as string[]) ?? []) {
-        skillMap[skill] = (skillMap[skill] ?? 0) + 1;
-      }
-    }
-
-    const educationBreakdown = Object.entries(eduMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([label, count]) => ({ label, count }));
-
-    const topSkills = Object.entries(skillMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([label, count]) => ({ label, count }));
+    const total = Number(summary.rows[0]?.total ?? 0);
+    const avgExperience = Number(summary.rows[0]?.avg_experience ?? 0);
+    const educationBreakdown = education.rows;
+    const topSkills = skills.rows;
 
     res.json({ total, avgExperience: Math.round(avgExperience * 10) / 10, educationBreakdown, topSkills });
   } catch (err) {
