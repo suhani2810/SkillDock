@@ -115,9 +115,15 @@ export function PremiumJobCard({
           <div className="flex items-center gap-2 flex-shrink-0">
             {onDelete && (
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   onDelete(id);
                 }}
