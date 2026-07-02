@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "wouter";
+import { motion } from "framer-motion";
 import { useGetCandidateStats, useListCandidates, useListRankings } from "@workspace/api-client-react";
 import {
   Plus,
@@ -71,7 +72,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-[2rem] border border-black/5 bg-white/80 p-8 shadow-[0_20px_80px_rgba(15,23,42,0.06)] backdrop-blur dark:border-white/10 dark:bg-slate-900/80">
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="rounded-[2rem] border border-black/5 bg-white/80 p-8 shadow-[0_20px_80px_rgba(15,23,42,0.06)] backdrop-blur dark:border-white/10 dark:bg-slate-900/80">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full border border-black/5 bg-[color:var(--accent-soft)] px-3 py-1 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-200">
@@ -91,7 +92,7 @@ export default function Dashboard() {
             <p className="mt-2 text-sm text-slate-400">A thoughtful pipeline is already in motion.</p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[
@@ -99,10 +100,10 @@ export default function Dashboard() {
           { label: "Avg experience", value: statsLoading ? "..." : `${averageExperience} yrs`, icon: Clock },
           { label: "Top skill", value: statsLoading ? "..." : topSkills[0]?.label ?? "None yet", icon: ScanLine },
           { label: "Ranking runs", value: rankingsLoading ? "..." : recentRankings.length.toLocaleString(), icon: Activity },
-        ].map((item) => {
+        ].map((item, index) => {
           const Icon = item.icon;
           return (
-            <div key={item.label} className="rounded-[1.5rem] border border-black/5 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-900/80">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: index * 0.05 }} key={item.label} className="rounded-[1.5rem] border border-black/5 bg-white/80 p-5 shadow-sm backdrop-blur transition-all hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/80">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-600 dark:text-slate-300">{item.label}</p>
@@ -110,7 +111,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]"><Icon className="h-5 w-5" /></div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>

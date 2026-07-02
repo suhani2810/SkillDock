@@ -1,12 +1,18 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { Users, Briefcase, BarChart3, Settings, Sparkles, ChevronRight, MoonStar, SunMedium, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Users, Briefcase, BarChart3, Settings, Sparkles, ChevronRight, MoonStar, SunMedium, PanelLeftClose, PanelLeftOpen, LogOut, MailWarning, Loader2 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { SkillDockLogo } from "@/components/skilldock-logo";
+import { useAuth } from "@/components/auth-provider";
+import { UserAvatar } from "@/components/user-avatar";
+import { getAuthProviderLabel } from "@/lib/user";
+import { useToast } from "@/hooks/use-toast";
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { theme, setTheme, sidebarCollapsed, setSidebarCollapsed, layout } = useTheme();
+  const { user, logout, sendVerificationEmail } = useAuth();
+  const { toast } = useToast();
 
   const navigation = [
     { name: "Overview", href: "/", icon: BarChart3 },
@@ -16,6 +22,21 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const isActive = (href: string) => location === href || (href !== "/" && location.startsWith(href));
+
+  const handleSignOut = async () => {
+    await logout();
+    navigate("/");
+    toast({ title: "Signed out", description: "You have been returned to the landing page." });
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      await sendVerificationEmail();
+      toast({ title: "Verification email sent", description: "Check your inbox to finish verifying your account." });
+    } catch (error) {
+      toast({ title: "Verification email failed", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
+    }
+  };
 
   return (
     <div className="flex h-screen w-full overflow-hidden transition-all duration-[var(--motion-duration)] ease-[var(--motion-easing)]" style={{ background: "var(--theme-bg)" }}>
@@ -70,15 +91,38 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               <span>Settings</span>
             </div>
           </Link>
-          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] px-3 py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--accent)] text-sm font-semibold text-white">U</div>
-              <div>
-                <div className="text-sm font-medium text-[color:var(--theme-text)]">Maya Chen</div>
-                <div className="text-xs text-[color:var(--theme-muted)]">Principal Recruiter</div>
+          <div className="mt-3 rounded-xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] px-3 py-3">
+            {user ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <UserAvatar displayName={user.displayName} email={user.email} photoURL={user.photoURL} className={sidebarCollapsed ? "h-10 w-10" : "h-11 w-11"} />
+                  <div className={sidebarCollapsed ? "hidden" : "block min-w-0"}>
+                    <div className="truncate text-sm font-medium text-[color:var(--theme-text)]">{user.displayName}</div>
+                    <div className="truncate text-xs text-[color:var(--theme-muted)]">{user.email}</div>
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.3em] text-[color:var(--theme-muted)]">{getAuthProviderLabel(user.providerId)}</div>
+                  </div>
+                </div>
+
+                <div className={`flex items-center gap-2 ${sidebarCollapsed ? "justify-center" : ""}`}>
+                  {!user.isEmailVerified ? (
+                    <button onClick={handleResendVerification} className="inline-flex items-center gap-2 rounded-full border border-[color:var(--theme-border)] px-3 py-2 text-xs text-[color:var(--theme-text)] transition hover:bg-[color:var(--accent-soft)]">
+                      <MailWarning className="h-3.5 w-3.5" />
+                      {sidebarCollapsed ? "Verify" : "Resend verification"}
+                    </button>
+                  ) : null}
+                  <button onClick={handleSignOut} className="inline-flex items-center gap-2 rounded-full border border-[color:var(--theme-border)] px-3 py-2 text-xs text-[color:var(--theme-text)] transition hover:bg-[color:var(--accent-soft)]">
+                    <LogOut className="h-3.5 w-3.5" />
+                    {sidebarCollapsed ? "Out" : "Sign out"}
+                  </button>
+                </div>
               </div>
-            </div>
-            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] p-2 text-[color:var(--theme-text)] transition hover:scale-105">
+            ) : (
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-[color:var(--theme-surface)] px-3 py-2 text-sm text-[color:var(--theme-muted)]">
+                <span>Loading profile...</span>
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            )}
+            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="mt-3 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] p-2 text-[color:var(--theme-text)] transition hover:scale-105">
               {theme === "dark" ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
             </button>
           </div>
@@ -107,6 +151,19 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 overflow-y-auto">
           <div className={`mx-auto max-w-7xl transition-all duration-[var(--motion-duration)] ${layout === "compact" ? "px-4 py-4 md:px-6 md:py-6" : "px-6 py-8 md:px-8 md:py-10"}`}>
+            {user && !user.isEmailVerified ? (
+              <div className="mb-6 rounded-[1.5rem] border border-amber-200 bg-amber-50/90 px-5 py-4 text-amber-950 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-medium">Please verify your email.</p>
+                    <p className="mt-1 text-sm text-amber-900/80 dark:text-amber-100/80">Verification keeps your recruiter workspace secure and synced across devices.</p>
+                  </div>
+                  <button onClick={handleResendVerification} className="inline-flex items-center justify-center rounded-full bg-amber-950 px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 dark:bg-white dark:text-amber-950">
+                    Resend Verification
+                  </button>
+                </div>
+              </div>
+            ) : null}
             {children}
           </div>
         </main>

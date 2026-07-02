@@ -190,7 +190,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") return;
     window.localStorage.removeItem("skilldock-demo-notes");
     window.localStorage.removeItem("quickRankData");
-    window.localStorage.removeItem("skilldock-demo-entered");
     window.localStorage.removeItem("skilldock-palette");
     window.localStorage.removeItem("skilldock-motion-mode");
     window.localStorage.removeItem("skilldock-sidebar-collapsed");
