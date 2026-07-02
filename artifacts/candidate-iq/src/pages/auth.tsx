@@ -150,7 +150,7 @@ export default function AuthPage() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      {formError && mode !== "forgot" ? <p className="text-sm text-red-600 dark:text-red-400">{formError}</p> : null}
+                      {formError ? <p className="text-sm text-red-600 dark:text-red-400">{formError}</p> : null}
                     </div>
                   )}
 
