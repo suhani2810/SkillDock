@@ -51,6 +51,7 @@ router.get("/stats", async (req, res) => {
 router.get("/", async (req, res) => {
   const query = ListCandidatesQueryParams.safeParse(req.query);
   try {
+    const listLimit = 50;
     let candidates;
     if (query.success && query.data.search) {
       const search = `%${query.data.search}%`;
@@ -63,9 +64,10 @@ router.get("/", async (req, res) => {
             ilike(sql`coalesce(${candidatesTable.currentTitle}, '')`, search),
             ilike(sql`coalesce(${candidatesTable.currentCompany}, '')`, search),
           ),
-        );
+        )
+        .limit(listLimit);
     } else {
-      candidates = await db.select().from(candidatesTable);
+      candidates = await db.select().from(candidatesTable).limit(listLimit);
     }
     res.json(candidates.map(serializeCandidate));
   } catch (err) {

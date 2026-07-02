@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useQuickRank } from "@/hooks/use-quick-rank";
 import { ArrowLeft, Sparkles, Upload, FileUp, Loader2 } from "lucide-react";
@@ -33,17 +34,83 @@ We do not want shallow keyword-only AI profiles. Strong candidates may have buil
 export default function QuickRankPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const quickRank = useQuickRank();
 
   const [jdText, setJdText] = useState("");
   const [topN, setTopN] = useState([15]);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadingType, setUploadingType] = useState<"pdf" | "docx" | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const docxInputRef = useRef<HTMLInputElement>(null);
 
   const charCount = jdText.trim().length;
   const isValid = charCount >= 20;
 
   const handleLoadDemo = () => {
     setJdText(DEMO_JD);
+  };
+
+  const handleUpload = async (file: File | undefined, expectedType: "pdf" | "docx") => {
+    if (!file) return;
+
+    const lowerName = file.name.toLowerCase();
+    if (!lowerName.endsWith(`.${expectedType}`)) {
+      toast({
+        title: "Wrong file type",
+        description: `Please upload a ${expectedType.toUpperCase()} file.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingType(expectedType);
+    try {
+      const response = await fetch("/api/documents/extract", {
+        method: "POST",
+        headers: {
+          "Content-Type": file.type || (
+            expectedType === "pdf"
+              ? "application/pdf"
+              : "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          ),
+          "X-File-Name": encodeURIComponent(file.name),
+        },
+        body: file,
+      });
+
+      const responseText = await response.text();
+      let payload: { error?: string; text?: string; characters?: number } = {};
+      try {
+        payload = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        payload = {};
+      }
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Upload backend is not running the latest code. Restart the API server, then try again.");
+        }
+        throw new Error(payload.error || `Could not extract text from this document. Server returned ${response.status}.`);
+      }
+
+      if (!payload.text) {
+        throw new Error("The backend did not return extracted text. Restart the API server, then try again.");
+      }
+
+      setJdText(payload.text);
+      toast({
+        title: "Document loaded",
+        description: `Extracted ${Number(payload.characters ?? payload.text.length).toLocaleString()} characters from ${file.name}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Please paste the JD text directly.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingType(null);
+    }
   };
 
   const handleRank = async () => {
@@ -59,6 +126,7 @@ export default function QuickRankPage() {
       if (typeof window !== "undefined") {
         sessionStorage.setItem("quickRankData", JSON.stringify(result));
       }
+      await queryClient.invalidateQueries({ queryKey: ["/api/rankings"] });
       navigate("/quick-rank/results");
     } catch (error) {
       toast({
@@ -132,21 +200,45 @@ export default function QuickRankPage() {
 
             {/* Upload Buttons */}
             <div className="flex gap-2">
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept="application/pdf,.pdf"
+                className="hidden"
+                onChange={(event) => {
+                  void handleUpload(event.target.files?.[0], "pdf");
+                  event.target.value = "";
+                }}
+              />
+              <input
+                ref={docxInputRef}
+                type="file"
+                accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
+                className="hidden"
+                onChange={(event) => {
+                  void handleUpload(event.target.files?.[0], "docx");
+                  event.target.value = "";
+                }}
+              />
               <Button
                 variant="outline"
                 size="sm"
                 className="flex-1 gap-2 border-slate-300 text-slate-700 hover:bg-slate-50"
+                disabled={uploadingType !== null}
+                onClick={() => pdfInputRef.current?.click()}
               >
-                <FileUp className="h-4 w-4" />
-                Upload PDF
+                {uploadingType === "pdf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
+                {uploadingType === "pdf" ? "Reading PDF..." : "Upload PDF"}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 className="flex-1 gap-2 border-slate-300 text-slate-700 hover:bg-slate-50"
+                disabled={uploadingType !== null}
+                onClick={() => docxInputRef.current?.click()}
               >
-                <FileUp className="h-4 w-4" />
-                Upload DOCX
+                {uploadingType === "docx" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
+                {uploadingType === "docx" ? "Reading DOCX..." : "Upload DOCX"}
               </Button>
             </div>
           </div>

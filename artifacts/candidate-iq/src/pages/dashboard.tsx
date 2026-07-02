@@ -1,37 +1,34 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "wouter";
-import { useGetCandidateStats, useListRankings } from "@workspace/api-client-react";
+import { useGetCandidateStats, useListCandidates, useListRankings } from "@workspace/api-client-react";
 import {
-  Upload,
-  FileUp,
   Plus,
   Zap,
   Users,
-  TrendingUp,
   ArrowRight,
   CheckCircle,
   Clock,
   Activity,
   XCircle,
   Sparkles,
-  CircleDollarSign,
   ScanLine,
-  FolderKanban,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 
 export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useGetCandidateStats();
+  const { data: candidates, isLoading: candidatesLoading } = useListCandidates();
   const { data: rankings, isLoading: rankingsLoading } = useListRankings();
-  const [jdText, setJdText] = useState("");
 
   const recentRankings = Array.isArray(rankings) ? rankings.slice(0, 5) : [];
+  const candidatesArray = Array.isArray(candidates) ? candidates : [];
+  const topSkills = Array.isArray(stats?.topSkills) ? stats.topSkills : [];
+  const averageExperience =
+    typeof stats?.avgExperience === "number" ? stats.avgExperience.toFixed(1) : "0.0";
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -97,11 +94,11 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: "Hiring activity", value: "+18%", icon: Activity },
-          { label: "Recent jobs", value: "6 live", icon: FolderKanban },
-          { label: "Candidates added", value: "84", icon: Users },
-          { label: "Ranking success", value: "92%", icon: CircleDollarSign },
+          {[
+          { label: "Total candidates", value: statsLoading ? "..." : (stats?.total ?? 0).toLocaleString(), icon: Users },
+          { label: "Avg experience", value: statsLoading ? "..." : `${averageExperience} yrs`, icon: Clock },
+          { label: "Top skill", value: statsLoading ? "..." : topSkills[0]?.label ?? "None yet", icon: ScanLine },
+          { label: "Ranking runs", value: rankingsLoading ? "..." : recentRankings.length.toLocaleString(), icon: Activity },
         ].map((item) => {
           const Icon = item.icon;
           return (
@@ -118,137 +115,28 @@ export default function Dashboard() {
         })}
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        {/* LEFT: JD Upload */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-serif text-slate-900 font-light dark:text-slate-100">
-            Brief Input
-          </h2>
-
-          {/* Paste Area */}
-          <div className="rounded-[1.5rem] border-2 border-dashed border-slate-300 bg-slate-50/60 p-8 transition-colors hover:bg-slate-100/70 dark:border-slate-700 dark:bg-slate-950/50 dark:hover:bg-slate-900/70">
-            <Textarea
-              placeholder="Paste a brief here or upload a file..."
-              className="min-h-40 border-0 bg-transparent text-slate-900 placeholder:text-slate-400 focus:ring-0 resize-none"
-              value={jdText}
-              onChange={(e) => setJdText(e.target.value)}
-            />
-          </div>
-
-          {/* Upload Buttons */}
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1 gap-2">
-              <FileUp className="h-4 w-4" />
-              Upload PDF
-            </Button>
-            <Button variant="outline" className="flex-1 gap-2">
-              <FileUp className="h-4 w-4" />
-              Upload DOCX
-            </Button>
-          </div>
-
-          {/* Demo & Action */}
-          <div className="flex gap-2 pt-2">
-            <Link href="/quick-rank" className="flex-1">
-              <Button className="w-full gap-2 bg-[color:var(--accent)] text-white hover:opacity-90">
-                <Zap className="h-4 w-4" />
-                Rank Candidates
-              </Button>
-            </Link>
-            <Button variant="outline" className="gap-2">
-              Demo JD
-            </Button>
-          </div>
-
-          {/* Recent Uploads */}
-          <div className="mt-6 pt-6 border-t border-slate-200">
-            <h3 className="text-sm font-medium text-slate-900 mb-3">
-              Recent uploads
-            </h3>
-            <div className="space-y-2 text-sm">
-              <p className="text-slate-500">No recent uploads</p>
+      <Card className="border-black/5 bg-white/80 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-900/80">
+        <CardContent className="flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-2xl">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-black/5 bg-[color:var(--accent-soft)] px-3 py-1 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-200">
+              <Zap className="h-4 w-4 text-[color:var(--accent)]" />
+              Start a new ranking
             </div>
+            <h2 className="font-serif text-2xl text-slate-900 dark:text-slate-100">
+              Upload or paste a job description to generate a shortlist.
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Quick Rank runs the JD against the live candidate dataset and returns ranked candidates with score breakdowns, matched skills, gaps, and rationale.
+            </p>
           </div>
-        </div>
-
-        {/* RIGHT: AI Parsed Requirements */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-serif text-slate-900 font-light dark:text-slate-100">
-            Curated Signal
-          </h2>
-
-          {jdText.length === 0 ? (
-            <Card className="border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-950/50">
-              <CardContent className="py-12 text-center">
-                <p className="text-slate-600 text-sm">
-                  Paste or upload a brief to see curated requirements
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="border-slate-200">
-              <CardContent className="space-y-6 pt-6">
-                {/* Confidence Score */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs uppercase tracking-wider font-semibold text-slate-900">
-                      Parse Confidence
-                    </span>
-                    <span className="text-sm font-semibold text-[color:var(--accent)]">92%</span>
-                  </div>
-                  <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full w-[92%] bg-[color:var(--accent)]" />
-                  </div>
-                </div>
-
-                {/* Sample Requirements */}
-                <div>
-                  <p className="text-xs uppercase tracking-wider font-semibold text-slate-900 mb-3">
-                    Must-Have Skills
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge className="bg-amber-100 text-amber-900 border-0">React</Badge>
-                    <Badge className="bg-amber-100 text-amber-900 border-0">
-                      TypeScript
-                    </Badge>
-                    <Badge className="bg-amber-100 text-amber-900 border-0">
-                      Node.js
-                    </Badge>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs uppercase tracking-wider font-semibold text-slate-900 mb-3">
-                    Nice-to-Have
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">GraphQL</Badge>
-                    <Badge variant="outline">AWS</Badge>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs uppercase tracking-wider font-semibold text-slate-900 mb-3">
-                    Experience & Education
-                  </p>
-                  <div className="space-y-2 text-sm text-slate-600">
-                    <div>
-                      <span className="font-medium">Minimum:</span> 5+ years
-                    </div>
-                    <div>
-                      <span className="font-medium">Education:</span> BS in CS or
-                      equivalent
-                    </div>
-                    <div>
-                      <span className="font-medium">Seniority:</span> Senior
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+          <Link href="/quick-rank">
+            <Button className="w-full gap-2 bg-[color:var(--accent)] text-white hover:opacity-90 md:w-auto">
+              <Zap className="h-4 w-4" />
+              Open Quick Rank
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
 
       <div className="rounded-[2rem] border border-black/5 bg-white/80 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-900/80">
         <div className="mb-6 flex items-center justify-between">
@@ -256,10 +144,16 @@ export default function Dashboard() {
             <p className="text-xs uppercase tracking-[0.35em] text-slate-500 dark:text-slate-400">Weekly statistics</p>
             <h2 className="mt-2 font-serif text-2xl text-slate-900 dark:text-slate-100">A gallery of momentum</h2>
           </div>
-          <div className="rounded-full border border-black/5 bg-[color:var(--accent-soft)] px-3 py-1 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-200">AI accuracy 94%</div>
+        <div className="rounded-full border border-black/5 bg-[color:var(--accent-soft)] px-3 py-1 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-200">
+          Live pool: {(stats?.total ?? 0).toLocaleString()} candidates
+        </div>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
-          {[{label: "Average match %", value: "89%"}, {label: "Hiring pipeline", value: "7 active"}, {label: "Weekly growth", value: "+12%"}].map((stat) => (
+          {[
+            { label: "Average experience", value: `${averageExperience} yrs` },
+            { label: "Known skills", value: topSkills.length.toLocaleString() },
+            { label: "Saved rankings", value: (rankings?.length ?? 0).toLocaleString() },
+          ].map((stat) => (
             <div key={stat.label} className="rounded-[1.25rem] border border-black/5 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-slate-950/50">
               <p className="text-sm text-slate-600 dark:text-slate-300">{stat.label}</p>
               <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">{stat.value}</p>
@@ -284,43 +178,59 @@ export default function Dashboard() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="border-slate-200 hover:shadow-md transition-shadow">
+            {candidatesLoading ? (
+              [1, 2, 3].map((i) => (
+                <Card key={i} className="border-slate-200">
+                  <CardContent className="space-y-4 pt-6">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <Skeleton className="h-5 w-2/3" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-8 w-full" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : candidatesArray.slice(0, 3).map((candidate) => (
+              <Card key={candidate.id} className="border-slate-200 hover:shadow-md transition-shadow">
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-amber-200 to-amber-300 rounded-full" />
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-amber-600">92%</div>
-                      <p className="text-xs text-slate-500">Match</p>
+                      <div className="text-2xl font-bold text-amber-600">
+                        {candidate.activityScore ?? 0}
+                      </div>
+                      <p className="text-xs text-slate-500">Activity</p>
                     </div>
                   </div>
 
                   <div className="space-y-1 mb-4">
-                    <h3 className="font-semibold text-slate-900">Alex Johnson</h3>
+                    <h3 className="font-semibold text-slate-900">{candidate.name}</h3>
                     <p className="text-sm text-slate-600">
-                      Senior Engineer @ TechCorp
+                      {[candidate.currentTitle, candidate.currentCompany].filter(Boolean).join(" @ ") || "Candidate profile"}
                     </p>
-                    <p className="text-xs text-slate-500">8 years experience</p>
+                    <p className="text-xs text-slate-500">
+                      {candidate.yearsExperience ?? 0} years experience
+                    </p>
                   </div>
 
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-slate-900">
-                      Top Strengths
+                      Skills from dataset
                     </p>
                     <div className="flex flex-wrap gap-1">
-                      <Badge className="text-xs bg-green-100 text-green-900 border-0">
-                        React Expert
-                      </Badge>
-                      <Badge className="text-xs bg-green-100 text-green-900 border-0">
-                        Leadership
-                      </Badge>
+                      {(candidate.skills ?? []).slice(0, 3).map((skill) => (
+                        <Badge key={skill} className="text-xs bg-green-100 text-green-900 border-0">
+                          {skill}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
 
-                  <Button className="w-full mt-4 gap-2 bg-amber-600 hover:bg-amber-700">
-                    <Users className="h-4 w-4" />
-                    View Profile
-                  </Button>
+                  <Link href={`/candidates/${candidate.id}`}>
+                    <Button className="w-full mt-4 gap-2 bg-amber-600 hover:bg-amber-700">
+                      <Users className="h-4 w-4" />
+                      View Profile
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             ))}

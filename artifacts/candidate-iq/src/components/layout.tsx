@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { Users, Briefcase, BarChart3, Settings, Sparkles, ChevronRight, MoonStar, SunMedium, Compass, GalleryVerticalEnd, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Users, Briefcase, BarChart3, Settings, Sparkles, ChevronRight, MoonStar, SunMedium, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { SkillDockLogo } from "@/components/skilldock-logo";
 
@@ -10,8 +10,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
   const navigation = [
     { name: "Overview", href: "/", icon: BarChart3 },
-    { name: "Talent Canvas", href: "/talent-canvas", icon: Compass },
-    { name: "Collections", href: "/collections", icon: GalleryVerticalEnd },
     { name: "Job Briefs", href: "/jobs", icon: Briefcase },
     { name: "Candidates", href: "/candidates", icon: Users },
     { name: "Quick Rank", href: "/quick-rank", icon: Sparkles },

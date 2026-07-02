@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, jobsTable, candidatesTable, rankingRunsTable, rankingResultsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { scoreCandidate } from "../lib/scorer";
 import { generateRationale } from "../lib/openai";
 import {
@@ -15,7 +15,7 @@ const router = Router();
 
 router.get("/", async (req, res) => {
   try {
-    const runs = await db.select().from(rankingRunsTable).orderBy(rankingRunsTable.createdAt);
+    const runs = await db.select().from(rankingRunsTable).orderBy(desc(rankingRunsTable.createdAt));
     const jobs = await db.select({ id: jobsTable.id, title: jobsTable.title }).from(jobsTable);
     const jobMap = new Map(jobs.map((j) => [j.id, j.title]));
 

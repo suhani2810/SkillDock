@@ -1,9 +1,19 @@
 import { Router } from "express";
-import { db, candidatesTable, type Job } from "@workspace/db";
+import {
+  db,
+  pool,
+  jobsTable,
+  candidatesTable,
+  rankingRunsTable,
+  rankingResultsTable,
+  type Job,
+} from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { parseJobDescription, generateRationale } from "../lib/openai";
 import { scoreCandidate } from "../lib/scorer";
 
 const router = Router();
+const QUICK_RANK_POOL_LIMIT = 10000;
 
 router.post("/", async (req, res) => {
   const parsed = parseRankRequest(req.body);
@@ -16,8 +26,29 @@ router.post("/", async (req, res) => {
 
   try {
     const parsedJD = await parseJobDescription(jdText);
-    const job = buildEphemeralJob(jdText, parsedJD);
-    const candidates = await db.select().from(candidatesTable);
+    const ephemeralJob = buildEphemeralJob(jdText, parsedJD);
+    const [job] = await db
+      .insert(jobsTable)
+      .values({
+        title: ephemeralJob.title,
+        rawText: ephemeralJob.rawText,
+        requiredSkills: ephemeralJob.requiredSkills ?? [],
+        preferredSkills: ephemeralJob.preferredSkills ?? [],
+        minExperience: ephemeralJob.minExperience,
+        educationRequirement: ephemeralJob.educationRequirement,
+        domain: ephemeralJob.domain,
+        seniorityLevel: ephemeralJob.seniorityLevel,
+      })
+      .returning();
+
+    const [run] = await db
+      .insert(rankingRunsTable)
+      .values({ jobId: job.id, status: "running", topN, minScore: 0 })
+      .returning();
+
+    const totalCandidatesResult = await pool.query<{ count: string }>("select count(*) as count from candidates");
+    const totalCandidates = Number(totalCandidatesResult.rows[0]?.count ?? 0);
+    const candidates = await db.select().from(candidatesTable).limit(QUICK_RANK_POOL_LIMIT);
 
     const scored = candidates
       .map((candidate) => ({
@@ -50,8 +81,37 @@ router.post("/", async (req, res) => {
     );
 
     const rationales = await Promise.all(rationalePromises);
+    const resultRows = scored.map(({ candidate, score }, index) => ({
+      rankingId: run.id,
+      candidateId: candidate.id,
+      rank: index + 1,
+      compositeScore: score.compositeScore,
+      semanticScore: score.semanticScore,
+      experienceScore: score.experienceScore,
+      educationScore: score.educationScore,
+      activityScore: score.activityScore,
+      trajectoryScore: score.trajectoryScore,
+      rationale: rationales[index],
+      matchedSkills: score.matchedSkills,
+      missingSkills: score.missingSkills,
+    }));
+
+    if (resultRows.length > 0) {
+      await db.insert(rankingResultsTable).values(resultRows);
+    }
+
+    await db
+      .update(rankingRunsTable)
+      .set({
+        status: "completed",
+        totalCandidates,
+        shortlistedCount: scored.length,
+        completedAt: new Date(),
+      })
+      .where(eq(rankingRunsTable.id, run.id));
 
     res.json({
+      ranking_id: run.id,
       job: {
         title: job.title,
         required_skills: job.requiredSkills ?? [],

@@ -29,6 +29,7 @@ export interface RankedCandidateResult {
 }
 
 export interface RankResponsePayload {
+  ranking_id?: number;
   job: {
     title: string;
     required_skills: string[];
