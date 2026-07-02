@@ -38,6 +38,34 @@ Important:
 - Keep the URL inside double quotes because it contains `&`.
 - Do not commit `load-env.ps1`.
 
+## 3B. Create Frontend Firebase Env File
+
+Copy the example file:
+
+```powershell
+Copy-Item artifacts\candidate-iq\.env.example artifacts\candidate-iq\.env.local
+```
+
+Then edit:
+
+```text
+artifacts/candidate-iq/.env.local
+```
+
+Fill it with the Firebase web app values:
+
+```text
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_MEASUREMENT_ID=...
+```
+
+Do not commit `.env.local`.
+
 ## 4. Create Tables
 
 ```powershell
@@ -171,4 +199,3 @@ POST /api/documents/extract
 ```
 
 PDF upload works for text PDFs. Scanned image PDFs need OCR and may fail.
-
