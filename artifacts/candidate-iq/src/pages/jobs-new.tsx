@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
-import { useCreateJob } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCreateJob, getListJobsQueryKey } from "@workspace/api-client-react";
 import { ArrowLeft, Sparkles, Loader2, CheckCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function JobNewPage() {
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
   const createJob = useCreateJob();
   const { toast } = useToast();
   const [title, setTitle] = useState("");
@@ -23,6 +25,7 @@ export default function JobNewPage() {
     if (!title.trim() || !rawText.trim()) return;
     try {
       const result = await createJob.mutateAsync({ data: { title, rawText } });
+      await queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
       setParsed(result as any);
     } catch {
       toast({ title: "Failed to create job", variant: "destructive" });

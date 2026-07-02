@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams, useLocation } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { useGetJob, useUpdateJob, getGetJobQueryKey, getListJobsQueryKey } from "@workspace/api-client-react";
 
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,13 +15,14 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 export default function JobDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const [, params] = useRoute("/jobs/:id");
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const jobId = Number(id);
+  const jobId = Number(params?.id);
+  const hasValidJobId = Number.isFinite(jobId) && jobId > 0;
 
-  const { data: job, isLoading } = useGetJob(jobId, { query: { queryKey: getGetJobQueryKey(jobId), enabled: !!jobId } });
+  const { data: job, isLoading } = useGetJob(hasValidJobId ? jobId : 0, { query: { queryKey: getGetJobQueryKey(hasValidJobId ? jobId : 0), enabled: hasValidJobId } });
   const updateJob = useUpdateJob();
 
   const [editing, setEditing] = useState(false);

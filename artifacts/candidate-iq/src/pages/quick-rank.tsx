@@ -31,6 +31,14 @@ Nice-to-have:
 
 We do not want shallow keyword-only AI profiles. Strong candidates may have built recommendation, retrieval, search, or matching systems even if they do not list every fashionable framework. Down-rank candidates with only toy LangChain demos, pure research with no deployment, or non-engineering profiles with AI keywords.`;
 
+const getUploadErrorMessage = (error: unknown) => {
+  if (error instanceof TypeError && /fetch/i.test(error.message)) {
+    return "Could not reach the upload backend. Keep the API server running on http://localhost:8080, then try again.";
+  }
+
+  return error instanceof Error ? error.message : "Please paste the JD text directly.";
+};
+
 export default function QuickRankPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -105,7 +113,7 @@ export default function QuickRankPage() {
     } catch (error) {
       toast({
         title: "Upload failed",
-        description: error instanceof Error ? error.message : "Please paste the JD text directly.",
+        description: getUploadErrorMessage(error),
         variant: "destructive",
       });
     } finally {
