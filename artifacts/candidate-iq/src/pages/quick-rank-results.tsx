@@ -46,6 +46,20 @@ export default function QuickRankResultsPage() {
   const [scoreRange, setScoreRange] = useState([0, 100]);
   const [sortKey, setSortKey] = useState<SortKey>("rank");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const shortlistStorageKey = data?.ranking_id
+    ? `quickRankShortlist:${data.ranking_id}`
+    : `quickRankShortlist:${data?.job.title ?? "latest"}`;
+  const [shortlistedIds, setShortlistedIds] = useState<Set<number>>(() => {
+    if (typeof window === "undefined") return new Set();
+    const stored = sessionStorage.getItem(shortlistStorageKey);
+    if (!stored) return new Set();
+    try {
+      const ids = JSON.parse(stored);
+      return Array.isArray(ids) ? new Set(ids.filter((id) => Number.isFinite(id))) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
 
   if (!data) {
     return (
@@ -136,6 +150,59 @@ export default function QuickRankResultsPage() {
       newSet.add(id);
     }
     setExpandedIds(newSet);
+  };
+
+  const toggleShortlist = (candidateId: number, candidateName: string) => {
+    setShortlistedIds((previous) => {
+      const next = new Set(previous);
+      const willShortlist = !next.has(candidateId);
+      if (willShortlist) {
+        next.add(candidateId);
+      } else {
+        next.delete(candidateId);
+      }
+
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(shortlistStorageKey, JSON.stringify(Array.from(next)));
+      }
+
+      toast({
+        title: willShortlist ? "Candidate shortlisted" : "Candidate removed",
+        description: candidateName,
+      });
+
+      return next;
+    });
+  };
+
+  const shareText = useMemo(() => {
+    const topCandidates = candidatesArray
+      .slice(0, 5)
+      .map((candidate) => `${candidate.rank}. ${candidate.name} (${candidate.composite_score.toFixed(0)}%)`)
+      .join("\n");
+
+    return `SkillDock ranking: ${data.job.title}\n${candidatesArray.length} candidates ranked.\n\nTop matches:\n${topCandidates}`;
+  }, [candidatesArray, data.job.title]);
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `SkillDock ranking: ${data.job.title}`,
+          text: shareText,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        toast({ title: "Ranking summary copied" });
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast({
+        title: "Share failed",
+        description: "Could not share this ranking. Try exporting CSV instead.",
+        variant: "destructive",
+      });
+    }
   };
 
   const exportToCSV = () => {
@@ -239,7 +306,7 @@ export default function QuickRankResultsPage() {
               <Download className="h-4 w-4" />
               Export
             </Button>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={handleShare}>
               <Share2 className="h-4 w-4" />
               Share
             </Button>
@@ -539,14 +606,21 @@ export default function QuickRankResultsPage() {
                           size="sm"
                           variant="outline"
                           className="flex-1"
+                          onClick={() => navigate(`/candidates/${candidate.internal_id}`)}
                         >
                           View Profile
                         </Button>
                         <Button
                           size="sm"
-                          className="flex-1 bg-amber-600 hover:bg-amber-700"
+                          variant={shortlistedIds.has(candidate.internal_id) ? "outline" : "default"}
+                          className={
+                            shortlistedIds.has(candidate.internal_id)
+                              ? "flex-1 border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                              : "flex-1 bg-amber-600 hover:bg-amber-700"
+                          }
+                          onClick={() => toggleShortlist(candidate.internal_id, candidate.name)}
                         >
-                          Shortlist
+                          {shortlistedIds.has(candidate.internal_id) ? "Shortlisted" : "Shortlist"}
                         </Button>
                       </div>
                     </div>
