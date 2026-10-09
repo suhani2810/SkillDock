@@ -1,5 +1,7 @@
 # SkillDock
 
+Made by Sukhani and Divyam, because apparently boredom is a startup idea.
+
 SkillDock is a full-stack recruiting intelligence platform for technical hiring teams. It ingests job descriptions, scores a candidate pool against the role, and surfaces ranked shortlists with explainable match reasoning, skills gaps, and recruiter-friendly summaries.
 
 The product is built around a practical workflow:
